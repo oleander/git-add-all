@@ -132,10 +132,21 @@ fn main() {
     let message = state.message();
 
     for result in repo.statuses(None).unwrap().iter() {
-        if result.status() != git2::Status::IGNORED {
-            let path = Path::new(result.path().expect("No path found"));
-            index.add_path(path).expect("Failed to add path");
-            is_empty = false;
+        let path = Path::new(result.path().expect("No path found"));
+        match result.status() {
+            git2::Status::CURRENT | git2::Status::INDEX_NEW | git2::Status::INDEX_MODIFIED => {
+                is_empty = false;
+                index.add_path(path).expect("Failed to add path");
+            }
+            git2::Status::WT_NEW | git2::Status::WT_MODIFIED => {
+                is_empty = false;
+                index.add_path(path).expect("Failed to add path");
+            }
+            git2::Status::WT_DELETED => {
+                is_empty = false;
+                index.remove_path(path).expect("Failed to remove path");
+            }
+            _ => {}
         }
     }
 
